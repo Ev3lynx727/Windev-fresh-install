@@ -81,7 +81,14 @@ $packagesToInstall = @(
     "NodeJS.Nodejs.LTS",           # Node.js (LTS version)
     "7zip.7Zip",                   # 7-Zip for file compression/extraction
     "JanDeDobbeleer.OhMyPosh",     # For a professional, themed terminal prompt (requires PowerShell Core)
-    "dbeaver.dbeaver"              # DBeaver Community (Universal Database Tool)
+    "dbeaver.dbeaver",             # DBeaver Community (Universal Database Tool)
+    "Google.CloudSDK",             # Google Cloud SDK (gcloud CLI)
+    "Microsoft.VisualStudioCode",  # VS Code
+    "Microsoft.WindowsTerminal",   # Windows Terminal
+    "Microsoft.DotNet.SDK.8",      # .NET SDK
+    "Microsoft.kubectl",           # Kubernetes CLI
+    "Hashicorp.Terraform",         # Terraform
+    "Canonical.Multipass"          # Multipass
 )
 
 foreach ($package in $packagesToInstall) {
@@ -95,7 +102,24 @@ foreach ($package in $packagesToInstall) {
     }
 }
 
+# --- 3a. Special Install for Visual Studio 2022 Community ---
+Write-Host "`n# 3a. Installing Visual Studio 2022 Community with workloads..." -ForegroundColor Yellow
+try {
+    $vsWorkloads = @(
+        "--add", "Microsoft.VisualStudio.Workload.NetWeb", # ASP.NET and web development
+        "--add", "Microsoft.VisualStudio.Workload.ManagedDesktop", # .NET desktop development
+        "--add", "Microsoft.VisualStudio.Workload.NativeDesktop",  # Desktop development with C++
+        "--includeRecommended"
+    )
+    winget install --id "Microsoft.VisualStudio.2022.Community" --override "$($vsWorkloads -join ' ')" --silent --accept-package-agreements --accept-source-agreements
+    Write-Host "✅ Installed Visual Studio 2022 Community." -ForegroundColor Green
+} catch {
+    Write-Host "❌ Failed to install Visual Studio 2022 Community. Skipping." -ForegroundColor Red
+}
+
+
 # --- 4. Final Steps ---
 Write-Host "`n🎉 **Dependency Tools Setup Complete!**" -ForegroundColor Green
 Write-Host "Please restart PowerShell and/or your computer to ensure Git, Node.js, and other tools are correctly added to your system PATH." -ForegroundColor Green
-Write-Host "Run 'git --version' and 'node --version' to confirm installation." -ForegroundColor Green
+Write-Host "Run 'git --version', 'node --version', 'gcloud --version', 'code --version', 'wt -v', 'dotnet --version', 'kubectl version --client', 'terraform --version', and 'multipass --version' to confirm installation." -ForegroundColor Green
+Write-Host "Visual Studio 2022 Community has also been installed." -ForegroundColor Green
