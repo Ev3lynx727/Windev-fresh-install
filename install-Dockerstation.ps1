@@ -27,9 +27,37 @@ if (-Not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 $ErrorActionPreference = "Stop" # Exit on any error
 
+# --- 0.5. CHECK OS AND HARDWARE REQUIREMENTS ---
+Write-Host "`n## 0.5. Verifying OS and Hardware..." -ForegroundColor Cyan
+
+# Check Windows Edition (Recommend Pro/Enterprise)
+$osInfo = Get-CimInstance Win32_OperatingSystem
+$sku = $osInfo.OperatingSystemSKU
+# SKUs: 4=Enterprise, 48=Professional, 101=Home, etc.
+if ($sku -ne 4 -and $sku -ne 48 -and $sku -ne 161 -and $sku -ne 125) {
+    Write-Warning "⚠️ You appear to be running a Windows Home edition (SKU: $sku)."
+    Write-Warning "   Microsoft recommends Windows 10/11 Pro or Enterprise for the best Hyper-V experience."
+    Write-Warning "   This script will attempt to enable WSL2 features which usually work on Home, but full Hyper-V might fail."
+}
+else {
+    Write-Host "✅ Windows Edition checks out (Pro/Enterprise)." -ForegroundColor Green
+}
+
+# Check Virtualization in BIOS
+$cpuInfo = Get-CimInstance Win32_Processor
+if (-not $cpuInfo.VirtualizationFirmwareEnabled) {
+    Write-Error "🛑 VIRTUALIZATION IS DISABLED IN BIOS/UEFI."
+    Write-Error "   You must restart your computer, enter BIOS, and enable 'Intel VT-x' or 'AMD-V'."
+    Write-Error "   Script cannot proceed without hardware virtualization."
+    exit 1
+}
+Write-Host "✅ Hardware Virtualization is enabled." -ForegroundColor Green
+
+
 # --- 1. ENABLE REQUIRED WINDOWS FEATURES ---
 Write-Host "`n## 1. Checking and enabling Windows Features..." -ForegroundColor Cyan
-$features = @("Microsoft-Windows-Subsystem-Linux", "VirtualMachinePlatform")
+# Added 'Microsoft-Hyper-V' for full Gen2 VM support as requested
+$features = @("Microsoft-Windows-Subsystem-Linux", "VirtualMachinePlatform", "Microsoft-Hyper-V")
 $restartNeeded = $false
 
 foreach ($feature in $features) {
@@ -41,7 +69,8 @@ foreach ($feature in $features) {
         if ((Get-WindowsOptionalFeature -Online -FeatureName $feature).RestartNeeded) {
             $restartNeeded = $true
         }
-    } else {
+    }
+    else {
         Write-Host "✅ Feature '$feature' is already enabled." -ForegroundColor Green
     }
 }
@@ -73,7 +102,8 @@ $installedDistros = wsl --list --quiet
 if ($installedDistros) {
     Write-Host "✅ Found existing WSL distro(s):" -ForegroundColor Green
     wsl --list
-} else {
+}
+else {
     Write-Host "No WSL distro found. Installing '$defaultDistro'..."
     wsl --install -d $defaultDistro --no-launch
     Write-Host "✅ '$defaultDistro' installed successfully." -ForegroundColor Green
@@ -83,10 +113,11 @@ if ($installedDistros) {
 $distroToVerify = if ($installedDistros) { $installedDistros.Split([Environment]::NewLine)[0].Trim() } else { $defaultDistro }
 if ($distroToVerify) {
     Write-Host "Verifying '$distroToVerify' is running on WSL 2..."
-    $distroVersion = (wsl --list --verbose | Where-Object { $_ -match $distroToVerify } | ForEach-Object { ($_.Split(' ',[StringSplitOptions]::RemoveEmptyEntries))[2] })
+    $distroVersion = (wsl --list --verbose | Where-Object { $_ -match $distroToVerify } | ForEach-Object { ($_.Split(' ', [StringSplitOptions]::RemoveEmptyEntries))[2] })
     if ($distroVersion -eq "2") {
         Write-Host "✅ '$distroToVerify' is correctly set to WSL version 2." -ForegroundColor Green
-    } else {
+    }
+    else {
         Write-Warning "'$distroToVerify' is on version $distroVersion. Attempting to convert to WSL 2..."
         wsl --set-version $distroToVerify 2
         Write-Host "✅ Conversion to WSL 2 complete." -ForegroundColor Green
@@ -100,13 +131,15 @@ Write-Host "`n## 4. Checking for and installing Docker Engine in WSL..." -Foregr
 $dockerInstalled = try {
     # This command will produce output (and thus be 'true' in PS) if docker is found, or throw an error if not.
     if (wsl -d $distroToVerify -u root -- bash -c "command -v docker") { $true } else { $false }
-} catch {
+}
+catch {
     $false
 }
 
 if ($dockerInstalled) {
     Write-Host "✅ Docker Engine is already installed in '$distroToVerify'." -ForegroundColor Green
-} else {
+}
+else {
     Write-Host "Docker Engine not found in '$distroToVerify'. Installing..."
 
     # This multi-line script will be executed inside WSL. It follows the official Docker installation guide.
@@ -126,10 +159,49 @@ apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin do
         # Pipe the script into WSL to execute as root.
         $installScript | wsl -d $distroToVerify -u root -- bash
         Write-Host "✅ Docker Engine installed successfully in '$distroToVerify'." -ForegroundColor Green
-    } catch {
+    }
+    catch {
         Write-Error "❌ Failed to install Docker Engine in WSL. Error: $($_.Exception.Message)"
         exit 1
     }
+}
+
+# --- 4.5. INSTALL NVIDIA CONTAINER TOOLKIT (IF GPU DETECTED) ---
+Write-Host "`n## 4.5. Checking for NVIDIA GPU..." -ForegroundColor Cyan
+
+$nvidiaSetupScript = @"
+set -e
+if command -v nvidia-smi &> /dev/null; then
+    echo "GPU detected via nvidia-smi."
+    if ! command -v nvidia-ctk &> /dev/null; then
+        echo "Installing NVIDIA Container Toolkit..."
+        curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+        curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+          sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+          tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+        apt-get update
+        apt-get install -y nvidia-container-toolkit
+        
+        echo "Configuring Docker runtime..."
+        nvidia-ctk runtime configure --runtime=docker
+        
+        # Restart docker to apply changes (service restart handled in final step or here)
+        service docker restart
+        echo "✅ NVIDIA Container Toolkit installed and configured."
+    else
+        echo "✅ NVIDIA Container Toolkit is already installed."
+    fi
+else
+    echo "⚠️ No NVIDIA GPU detected (nvidia-smi not found). Skipping toolkit install."
+fi
+"@
+
+try {
+    Write-Host "Running NVIDIA GPU detection and setup in WSL..."
+    $nvidiaSetupScript | wsl -d $distroToVerify -u root -- bash
+}
+catch {
+    Write-Warning "Failed during NVIDIA setup check. Error: $($_.Exception.Message)"
 }
 
 # --- 5. FINALIZING ---
@@ -157,7 +229,8 @@ try {
     $dockerStatus = wsl -d $distroToVerify -u root -- bash -c "service docker status"
     if ($dockerStatus -like "*is running*") {
         Write-Host "✅ Docker service is running in '$distroToVerify'." -ForegroundColor Green
-    } else {
+    }
+    else {
         Write-Warning "Docker service may not have started correctly. Check with 'service docker status' inside WSL. Status: $dockerStatus"
     }
 }

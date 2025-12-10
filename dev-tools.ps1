@@ -5,10 +5,10 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 # --- Helper Function for Downloading and Installing MSI/EXE ---
 function Install-Software {
     param(
-        [Parameter(Mandatory=$true)][string]$Name,
-        [Parameter(Mandatory=$true)][string]$Url,
-        [Parameter(Mandatory=$true)][string]$FileName,
-        [Parameter(Mandatory=$true)][string[]]$Arguments
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$Url,
+        [Parameter(Mandatory = $true)][string]$FileName,
+        [Parameter(Mandatory = $true)][string[]]$Arguments
     )
     $InstallerPath = "$env:TEMP\$FileName"
     
@@ -32,7 +32,8 @@ function Install-Software {
         
         if ($process.ExitCode -eq 0) {
             Write-Host "✅ $Name installed successfully." -ForegroundColor Green
-        } else {
+        }
+        else {
             Write-Host "❌ $Name installation failed with Exit Code $($process.ExitCode)." -ForegroundColor Red
         }
     }
@@ -69,7 +70,8 @@ if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
     if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
         Write-Host "❌ Winget could not be installed automatically. Please ensure Windows is updated or install 'App Installer' from the Microsoft Store." -ForegroundColor Red
     }
-} else {
+}
+else {
     Write-Host "✅ Winget is available. Continuing with package installation." -ForegroundColor Green
 }
 
@@ -97,7 +99,8 @@ foreach ($package in $packagesToInstall) {
         # --silent is implied by winget for most installations
         winget install --id $package --silent --accept-package-agreements --accept-source-agreements -e
         Write-Host "✅ Installed $($package)." -ForegroundColor Green
-    } catch {
+    }
+    catch {
         Write-Host "❌ Failed to install $($package). Skipping." -ForegroundColor Red
     }
 }
@@ -113,7 +116,8 @@ try {
     )
     winget install --id "Microsoft.VisualStudio.2022.Community" --override "$($vsWorkloads -join ' ')" --silent --accept-package-agreements --accept-source-agreements
     Write-Host "✅ Installed Visual Studio 2022 Community." -ForegroundColor Green
-} catch {
+}
+catch {
     Write-Host "❌ Failed to install Visual Studio 2022 Community. Skipping." -ForegroundColor Red
 }
 

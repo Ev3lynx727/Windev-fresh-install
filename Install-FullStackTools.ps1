@@ -25,7 +25,9 @@ $wingetPackages = @(
     "Git.Git",               # Git for Windows (Version Control)
     "NodeJS.Nodejs.LTS",     # Node.js (Long Term Support version)
     "Python.Python.3",       # Python 3 (latest stable version, includes Pip)
-    "Go.Go"                  # Go Programming Language
+    "Go.Go",                 # Go Programming Language
+    "Koalaman.ShellCheck",   # ShellCheck (Linter for shell scripts)
+    "Canonical.Multipass"    # Multipass (Ubuntu VMs)
 )
 
 foreach ($packageId in $wingetPackages) {
@@ -33,12 +35,29 @@ foreach ($packageId in $wingetPackages) {
     try {
         winget install --id $packageId --silent --accept-package-agreements --accept-source-agreements -e
         Write-Host "✅ Successfully installed $($packageId)." -ForegroundColor Green
-    } catch {
+    }
+    catch {
         Write-Host "❌ Failed to install $($packageId) via Winget. Error: $($_.Exception.Message)" -ForegroundColor Red
     }
 }
 
----
+# --- 2.1 Install Shell LSP via NPM ---
+# Note: npm might not be available immediately after Winget install during the same session.
+# $npmPath = Get-Command npm -ErrorAction SilentlyContinue
+# if ($npmPath) {
+#     Write-Host "`n➡️ Installing bash-language-server via npm..." -ForegroundColor Yellow
+#     try {
+#         npm install -g bash-language-server
+#         Write-Host "✅ Successfully installed bash-language-server." -ForegroundColor Green
+#     }
+#     catch {
+#         Write-Host "❌ Failed to install bash-language-server. Error: $($_.Exception.Message)" -ForegroundColor Red
+#     }
+# }
+# else {
+#     Write-Host "`n⚠️ npm command not found (pending PATH update). Skipping bash-language-server installation." -ForegroundColor Yellow
+#     Write-Host "   Please run 'npm install -g bash-language-server' manually after restart." -ForegroundColor Yellow
+# }
 
 # --- 3. Install Chocolatey (Cygwin/Shell compatibility) ---
 Write-Host "`n## 🚀 Installing Chocolatey Package Manager..." -ForegroundColor Cyan
@@ -54,7 +73,8 @@ try {
     # Note: choco is usually available immediately, but we can wait for safety
     Start-Sleep -Seconds 5
     Write-Host "✅ Chocolatey installed successfully." -ForegroundColor Green
-} catch {
+}
+catch {
     Write-Host "❌ Failed to install Chocolatey. Error: $($_.Exception.Message)" -ForegroundColor Red
 }
 
@@ -65,14 +85,14 @@ if (Get-Command choco -ErrorAction SilentlyContinue) {
         # Use --confirm to bypass confirmation prompts
         choco install bun --confirm
         Write-Host "✅ Successfully installed Bun." -ForegroundColor Green
-    } catch {
+    }
+    catch {
         Write-Host "❌ Failed to install Bun via Chocolatey. Error: $($_.Exception.Message)" -ForegroundColor Red
     }
-} else {
+}
+else {
     Write-Host "⚠️ Skipping Bun installation because Chocolatey is not available." -ForegroundColor Yellow
 }
-
----
 
 # --- 5. Final Verification and Cleanup ---
 Write-Host "`n## ✅ Verification and Finalization" -ForegroundColor Cyan
@@ -83,9 +103,10 @@ $tools = @("git", "node", "npm", "python3", "pip", "go", "choco", "bun")
 foreach ($tool in $tools) {
     try {
         Write-Host "- $($tool):" -NoNewline
-        $versionOutput = & $tool --version 2>&1
+        $versionOutput = & $tool "--version" 2>&1
         Write-Host " $($versionOutput.Split(' ')[0])" -ForegroundColor DarkGreen
-    } catch {
+    }
+    catch {
         Write-Host " Not found or path error." -ForegroundColor Red
     }
 }

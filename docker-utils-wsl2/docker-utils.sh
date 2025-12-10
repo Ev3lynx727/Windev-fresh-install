@@ -1,30 +1,3 @@
-# Docker Utilities for WSL2
-
-This file contains a collection of utility functions to simplify common Docker management tasks within a WSL2 environment. These scripts are intended to be run directly from your Linux distribution inside WSL2.
-
-## How to Use
-
-1.  **Copy the Script:** Inside your WSL2 terminal, create a new file named `docker-utils.sh` in your home directory (`~/`). Copy the bash script from the section below and paste it into this new file.
-
-2.  **Make it Executable:** In your WSL2 terminal, run the following command to make the script executable:
-    ```bash
-    chmod +x ~/docker-utils.sh
-    ```
-
-3.  **Source it in Your Shell Profile:** To make these utility functions available every time you start a new terminal session, add the following line to your `~/.bashrc` (for Bash) or `~/.zshrc` (for Zsh) file:
-    ```bash
-    source ~/docker-utils.sh
-    ```
-
-4.  **Reload Your Shell:** Apply the changes by either restarting your terminal or by running `source ~/.bashrc` (or `source ~/.zshrc`).
-
-5.  **Run the Utility Commands:** You can now use the functions directly from your terminal.
-
----
-
-## Utility Script (`docker-utils.sh`)
-
-```bash
 #!/bin/bash
 
 # ==============================================================================
@@ -146,12 +119,68 @@ docker-update() {
     echo -e "\n${C_GREEN}✅ Docker package update process finished.${C_NC}"
 }
 
+# ------------------------------------------------------------------------------
+# docker-portainer: Launches Portainer CE for web-based management.
+# ------------------------------------------------------------------------------
+docker-portainer() {
+    echo -e "${C_BLUE}--- Starting Portainer ---${C_NC}"
+    
+    if [ "$(docker ps -q -f name=portainer)" ]; then
+         echo -e "${C_GREEN}Portainer is already running.${C_NC}"
+         echo "Access it at: https://localhost:9443"
+         return 0
+    fi
+
+    if [ "$(docker ps -aq -f name=portainer)" ]; then
+        echo -e "${C_YELLOW}Starting existing Portainer container...${C_NC}"
+        docker start portainer
+    else
+        # Check if image exists locally
+        if ! docker image inspect portainer/portainer-ce:latest >/dev/null 2>&1; then
+            echo -e "${C_YELLOW}Image 'portainer/portainer-ce:latest' not found locally.${C_NC}"
+            echo -e "${C_YELLOW}Pulling from Docker Hub...${C_NC}"
+            docker pull portainer/portainer-ce:latest
+        fi
+
+        echo -e "${C_YELLOW}Creating and starting new Portainer container...${C_NC}"
+        docker run -d -p 9000:9000 -p 9443:9443 --name portainer \
+            --restart=always \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v portainer_data:/data \
+            portainer/portainer-ce:latest
+    fi
+    
+    echo -e "\n${C_GREEN}✅ Portainer started.${C_NC}"
+    echo -e "Dashboard: ${C_BLUE}https://localhost:9443${C_NC}"
+}
+
+# ------------------------------------------------------------------------------
+# docker-ctop: Launches ctop for terminal-based container monitoring.
+# ------------------------------------------------------------------------------
+docker-ctop() {
+    echo -e "${C_BLUE}--- Starting ctop ---${C_NC}"
+
+    # Check if image exists locally
+    # Note: quay.io requires TLS 1.2+ (enforced by Docker client)
+    if ! docker image inspect quay.io/vektorlab/ctop:latest >/dev/null 2>&1; then
+        echo -e "${C_YELLOW}Image 'quay.io/vektorlab/ctop:latest' not found locally.${C_NC}"
+        echo -e "${C_YELLOW}Pulling from Docker Hub...${C_NC}"
+        docker pull quay.io/vektorlab/ctop:latest
+    fi
+
+    echo -e "${C_YELLOW}Running ctop... (Press 'q' to quit)${C_NC}"
+    docker run --rm -it \
+        --name=ctop \
+        --volume /var/run/docker.sock:/var/run/docker.sock:ro \
+        quay.io/vektorlab/ctop:latest
+}
+
 # --- On-load message ---
 
 echo -e "${C_GREEN}Docker utilities loaded.${C_NC} Available commands:"
 echo -e "  - ${C_YELLOW}docker-info${C_NC}: Show Docker status summary."
 echo -e "  - ${C_YELLOW}docker-prune${C_NC}: Aggressively prune all containers, networks, and build cache."
 echo -e "  - ${C_YELLOW}docker-shell <container>${C_NC}: Exec into a running container's shell."
+echo -e "  - ${C_YELLOW}docker-portainer${C_NC}: Launch Portainer management dashboard."
+echo -e "  - ${C_YELLOW}docker-ctop${C_NC}: Launch ctop container monitor."
 echo -e "  - ${C_YELLOW}docker-update${C_NC}: Update Docker Engine packages via apt."
-
-```
