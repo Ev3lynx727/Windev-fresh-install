@@ -46,13 +46,14 @@ else {
 # Check Virtualization in BIOS
 $cpuInfo = Get-CimInstance Win32_Processor
 if (-not $cpuInfo.VirtualizationFirmwareEnabled) {
-    Write-Error "🛑 VIRTUALIZATION IS DISABLED IN BIOS/UEFI."
-    Write-Error "   You must restart your computer, enter BIOS, and enable 'Intel VT-x' or 'AMD-V'."
-    Write-Error "   Script cannot proceed without hardware virtualization."
-    exit 1
+    Write-Warning "🛑 VIRTUALIZATION IS REPORTED AS DISABLED IN BIOS/UEFI."
+    Write-Warning "   You have requested to bypass this check."
+    Write-Warning "   If virtualization is not truly enabled, subsequent steps for WSL2 or Hyper-V will likely fail."
+    Write-Host "   Proceeding with the script..."
 }
-Write-Host "✅ Hardware Virtualization is enabled." -ForegroundColor Green
-
+else {
+    Write-Host "✅ Hardware Virtualization is enabled." -ForegroundColor Green
+}
 
 # --- 1. ENABLE REQUIRED WINDOWS FEATURES ---
 Write-Host "`n## 1. Checking and enabling Windows Features..." -ForegroundColor Cyan
@@ -104,9 +105,25 @@ if ($installedDistros) {
     wsl --list
 }
 else {
-    Write-Host "No WSL distro found. Installing '$defaultDistro'..."
-    wsl --install -d $defaultDistro --no-launch
-    Write-Host "✅ '$defaultDistro' installed successfully." -ForegroundColor Green
+    Write-Host "No WSL distro found. Attempting to install '$defaultDistro'..."
+    try {
+        # First, try the standard install method via Microsoft Store
+        wsl --install -d $defaultDistro --no-launch
+        Write-Host "✅ '$defaultDistro' installed successfully via Microsoft Store." -ForegroundColor Green
+    }
+    catch {
+        # If the store fails (like with error 0x80d03805), fall back to a direct download
+        Write-Warning "WSL installation via Microsoft Store failed. Error: $($_.Exception.Message)"
+        Write-Warning "Attempting fallback: Direct download and installation..."
+        $distroUrl = "https://aka.ms/wslubuntu2204"
+        $distroPath = "$env:TEMP\ubuntu2204.appxbundle"
+        Write-Host "Downloading Ubuntu 22.04 from $distroUrl..."
+        Invoke-WebRequest -Uri $distroUrl -OutFile $distroPath -UseBasicParsing
+        Write-Host "Download complete. Installing package..."
+        Add-AppxPackage -Path $distroPath
+        Write-Host "✅ '$defaultDistro' installed successfully via direct package install." -ForegroundColor Green
+        Remove-Item -Path $distroPath -Force -ErrorAction SilentlyContinue
+    }
 }
 
 # Verify the primary distro is running on WSL 2
@@ -238,7 +255,29 @@ catch {
     Write-Error "❌ Could not start Docker service in WSL. Error: $($_.Exception.Message)"
 }
 
+# Create a PowerShell profile alias for seamless docker command usage from Windows Terminal
+Write-Host "Creating 'docker' alias in PowerShell profile for seamless integration..."
+try {
+    $profilePath = $PROFILE.CurrentUserCurrentHost
+    if (-not (Test-Path $profilePath)) {
+        New-Item -Path $profilePath -ItemType File -Force | Out-Null
+        Write-Host "Created PowerShell profile at $profilePath"
+    }
+    $aliasCommand = "function docker { wsl docker @args }"
+    if (-not (Select-String -Path $profilePath -Pattern "function docker" -Quiet)) {
+        Add-Content -Path $profilePath -Value "`n# Alias for running Docker in WSL from PowerShell`n$aliasCommand"
+        Write-Host "✅ Docker alias added to PowerShell profile." -ForegroundColor Green
+    }
+    else {
+        Write-Host "✅ Docker alias already exists in PowerShell profile." -ForegroundColor Green
+    }
+}
+catch {
+    Write-Warning "Could not automatically add docker alias to PowerShell profile. You can add it manually by adding 'function docker { wsl docker @args }' to your profile (`$PROFILE`)."
+}
+
 Write-Host "`n🎉 **Docker on WSL setup complete!**" -ForegroundColor Green
-Write-Host "   You can now run docker commands from within the '$distroToVerify' WSL terminal (after a logout/login)."
-Write-Host "   To use Docker from Windows (e.g., in PowerShell or VS Code), you might need to configure a Docker context."
+Write-Host "   You can now run 'docker' commands from within the '$distroToVerify' WSL terminal."
+Write-Host "   Thanks to the new alias, you can also run 'docker' commands directly from PowerShell."
 Write-Host "   IMPORTANT: A full logout/restart of your Windows session is required for group membership changes to take full effect inside WSL." -ForegroundColor Yellow
+Write-Host "   After restarting, open a new PowerShell terminal and run '. `$PROFILE' or restart the terminal to activate the alias."
