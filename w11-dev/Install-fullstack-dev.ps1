@@ -2,6 +2,24 @@
 # Set execution policy to allow running scripts (scoped to the current process)
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
+# --- Check/Install Chocolatey ---
+Write-Host "`n## Checking for Chocolatey Package Manager" -ForegroundColor Cyan
+
+if (Get-Command choco -ErrorAction SilentlyContinue) {
+    Write-Host "✅ Chocolatey is already installed. Skipping." -ForegroundColor Green
+}
+else {
+    Write-Host "❌ Chocolatey not found. Installing..." -ForegroundColor Yellow
+    try {
+        Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+        Start-Sleep -Seconds 5
+        Write-Host "✅ Chocolatey installed successfully." -ForegroundColor Green
+    }
+    catch {
+        Write-Host "❌ Failed to install Chocolatey. Error: $($_.Exception.Message)" -ForegroundColor Red
+    }
+}
+
 Write-Host "## 🛠️ Full-Stack Development Environment Setup" -ForegroundColor Cyan
 Write-Host "This script will install all essential development tools, languages, and utilities." -ForegroundColor Cyan
 Write-Host ""
@@ -316,26 +334,7 @@ Update-SessionEnvironment
 # ========================================
 Write-Host "`n## Alternative Package Managers" -ForegroundColor Cyan
 
-# --- Install Chocolatey ---
-Write-Host "`n➡️ Installing Chocolatey Package Manager..." -ForegroundColor Yellow
-
-if (Get-Command choco -ErrorAction SilentlyContinue) {
-    Write-Host "✅ Chocolatey is already installed. Skipping." -ForegroundColor Green
-}
-else {
-    $ChocoInstallCommand = @"
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-"@
-
-    try {
-        Invoke-Expression $ChocoInstallCommand
-        Start-Sleep -Seconds 5
-        Write-Host "✅ Chocolatey installed successfully." -ForegroundColor Green
-    }
-    catch {
-        Write-Host "❌ Failed to install Chocolatey. Error: $($_.Exception.Message)" -ForegroundColor Red
-    }
-}
+# --- Bun and DBeaver are installed via Chocolatey earlier ---
 
 # --- Install Bun via Chocolatey ---
 if (Get-Command choco -ErrorAction SilentlyContinue) {
@@ -347,9 +346,19 @@ if (Get-Command choco -ErrorAction SilentlyContinue) {
     catch {
         Write-Host "❌ Failed to install Bun via Chocolatey. Error: $($_.Exception.Message)" -ForegroundColor Red
     }
+
+    # --- Install DBeaver via Chocolatey ---
+    Write-Host "`n➡️ Installing DBeaver via Chocolatey..." -ForegroundColor Yellow
+    try {
+        choco install dbeaver --confirm
+        Write-Host "✅ Successfully installed DBeaver." -ForegroundColor Green
+    }
+    catch {
+        Write-Host "❌ Failed to install DBeaver via Chocolatey. Error: $($_.Exception.Message)" -ForegroundColor Red
+    }
 }
 else {
-    Write-Host "⚠️ Skipping Bun installation because Chocolatey is not available." -ForegroundColor Yellow
+    Write-Host "⚠️ Skipping Bun and DBeaver installation because Chocolatey is not available." -ForegroundColor Yellow
 }
 
 # --- 3. Verification ---
@@ -415,7 +424,7 @@ Write-Host "📝 **Installed Tools Summary:**" -ForegroundColor Cyan
 Write-Host "  • Core: Git, VS Code, Windows Terminal, PowerShell Core, VCRedist" -ForegroundColor White
 Write-Host "  • Languages: Node.js, Python, Go, .NET SDK" -ForegroundColor White
 Write-Host "  • Cloud: kubectl, gcloud, Multipass" -ForegroundColor White
-Write-Host "  • Database: DBeaver" -ForegroundColor White
+Write-Host "  • Database: DBeaver (via Winget/Chocolatey)" -ForegroundColor White
 Write-Host "  • Utilities: 7-Zip, Oh My Posh, ShellCheck" -ForegroundColor White
 Write-Host "  • Package Managers: Chocolatey, Bun" -ForegroundColor White
 Write-Host ""

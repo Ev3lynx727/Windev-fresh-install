@@ -11,9 +11,10 @@
 
 ### Installed Tools
 - **Docker**: v29.1.2 ✅
-- **Development Tools**: Python3, Node.js, npm, Git ✅
-- **Networking Tools**: curl, wget, openssh, dnsutils, traceroute, whois, iftop, nload, bmon, httpie, siege, telnet, ftp, socat ✅
+- **Development Tools**: Python3, Node.js, npm, Git, build-essential, cmake, vim, tmux, zsh ✅
+- **Networking Tools**: Complete suite including DNS (dig, nslookup, host), monitoring (iftop, nload, bmon), HTTP (httpie, siege), utilities (socat, telnet, ftp), and basic tools (curl, wget, openssh, netcat) ✅
 - **WSL Features**: systemd enabled ✅
+- **WSL2 Utilities**: Comprehensive management functions (wsl-info, wsl-network-info, wsl-dns-test, wsl-http-test, etc.) ✅
 
 ### Volume Mounting Status
 - **C:\ drive**: Auto-mounted at `/mnt/c` (9p/drvfs)
@@ -83,25 +84,63 @@ The WSL2 development environment includes comprehensive networking tools for dev
 
 ```
 Windev-fresh-install/
-├── docker-utils-wsl2/          # Docker management utilities
-│   ├── docker-utils.sh        # Docker helper functions
-│   ├── install-docker-engine.sh
+├── containerd/                # Containerd and Docker utilities
+│   ├── agent.md
 │   └── readme.md
 ├── docs/                      # Documentation
 │   ├── build-with-devcontainer.md
-│   └── dashboard-spec.md
+│   ├── current-hw.md
+│   ├── dashboard-spec.md
+│   └── hardware-requirement.md
 ├── ohmyposh-setup/            # Terminal customization
 │   ├── find_omp.ps1
 │   └── setup_git_bash_omp.sh
+├── w11-dev/                   # Windows 11 development tools
+│   ├── Install-fullstack-dev.ps1  # Full-stack development setup
+│   ├── install-Dockerstation.ps1  # Docker station setup
+│   ├── find_omp.ps1
+│   └── VScode/                # VS Code extensions management
+│       ├── README.md
+│       ├── backup-extensions.ps1
+│       ├── install-extensions.ps1
+│       └── extensions.json
 ├── wsl2-dev/                  # WSL2 development tools
+│   ├── README.md              # Comprehensive tool documentation
+│   ├── agent.md
 │   ├── install-dev-tools-wsl2.sh  # Development environment setup
 │   ├── system-checkup.sh      # System diagnostic tool
 │   ├── speedtest-wsl2.sh      # Network speed testing
-│   └── wsl-dev-utils.sh       # WSL2 helper functions
-├── Install-fullstack-dev.ps1  # Windows development setup
-├── install-Dockerstation.ps1  # WSL2 + Docker setup
+│   ├── wsl-dev-utils.sh       # WSL2 helper functions
+│   ├── wsl2-dev-utils.sh
+│   ├── wsl2-docker-tweak.sh
+│   ├── install-docker-engine.sh
+│   ├── install-extra-tools.sh
+│   ├── install-nvidia-container.sh
+│   └── VScode/                # VS Code extensions management
+│       ├── README.md
+│       ├── backup-extensions.sh
+│       ├── install-extensions.sh
+│       └── extensions.json
+├── CHANGELOG.md               # Project changelog
+├── LICENSE
+├── Overview.md                # Project overview
 └── README.MD                  # Main project documentation
 ```
+
+## 📄 Documentation
+*   [Deployment Guide](./DEPLOYMENT.md) - Hybrid workflow for fresh installs and repo locking
+*   [Current Hardware](./docs/current-hw.md) - Baseline system configuration and upgrade roadmap
+*   [Hardware Requirements](./docs/hardware-requirement.md) - Complete Trinity Nuke hardware specifications
+*   [Dashboard Design Spec](./docs/dashboard-spec.md)
+*   [Build with Dev Container](./docs/build-with-devcontainer.md)
+
+## VS Code Extensions Management
+
+After installing VS Code via `Install-fullstack-dev.ps1`, manage extensions easily:
+
+- **Windows**: Use `w11-dev/VScode/` scripts (`backup-extensions.ps1`, `install-extensions.ps1`) for native PowerShell management.
+- **WSL2**: Use `wsl2-dev/VScode/` scripts (`backup-extensions.sh`, `install-extensions.sh`) for cross-platform handling.
+- Shared `extensions.json` allows backing up on one platform and installing on another.
 
 ## Configuration Issues Identified
 
@@ -117,8 +156,15 @@ Windev-fresh-install/
 
 ## Todo Plan: WSL2 Optimization
 
-### High Priority Tasks
+### Completed Tasks ✅
 - [x] Analyze current WSL2 volume mounting and VHD configuration
+- [x] Add comprehensive networking tools (DNS, monitoring, HTTP, utilities)
+- [x] Create WSL2 utility functions (wsl-network-info, wsl-dns-test, wsl-http-test)
+- [x] Implement system checkup tool with networking diagnostics
+- [x] Add network speed testing with visual progress (speedtest2 command)
+- [x] Create comprehensive documentation (wsl2-dev/README.md)
+
+### High Priority Tasks
 - [ ] Research optimal .wslconfig settings for VHD size limits, memory allocation, and swap configuration
 - [ ] Research /etc/wsl.conf options for drive mounting, metadata support, and automount configuration
 - [ ] Create Windows-side .wslconfig file with optimized VHD size (256-512GB), memory limits, and swap settings
@@ -130,17 +176,59 @@ Windev-fresh-install/
 - [ ] Plan testing procedure to verify volume mounting works correctly and VHD size is optimized
 - [ ] Plan rollback procedure in case configuration changes cause issues
 
+## Recent Developments
+
+### Enhanced Networking Capabilities
+- **DNS Tools**: dig, nslookup, host, traceroute, whois for comprehensive network analysis
+- **Monitoring Tools**: iftop, nload, bmon for real-time bandwidth and network monitoring
+- **HTTP Tools**: httpie (modern HTTP client), siege (load testing), with curl/wget as standards
+- **Network Utilities**: socat (advanced netcat), telnet, ftp for connectivity testing
+- **WSL2 Network Functions**: Dedicated utilities for network diagnostics and troubleshooting
+
+### Development Tools Suite
+- **Automated Installation**: Complete development environment setup script
+- **System Diagnostics**: Comprehensive health checking and status reporting
+- **Network Testing**: Speed testing with visual progress and persistent commands
+- **Management Utilities**: Interactive functions for WSL2 system management
+
+### Documentation & Usability
+- **Comprehensive README**: Detailed documentation for all WSL2 development tools
+- **Workflow Integration**: Clear guidance on tool usage and maintenance routines
+- **Troubleshooting**: Built-in help and diagnostic capabilities
+
 ## Next Steps
 
-1. Complete research on WSL configuration options
-2. Implement Windows-side .wslconfig optimizations
-3. Update WSL-side configuration for better drive mounting
-4. Test and validate all changes
-5. Document final optimized configuration
+1. **Install Networking Tools**: Run `wsl2-dev/install-dev-tools-wsl2.sh` to install all new networking packages
+2. **Test New Capabilities**: Use `wsl2-dev/system-checkup.sh` to verify installations and `speedtest2` for network testing
+3. **Complete WSL Configuration Research**: Research optimal .wslconfig and /etc/wsl.conf settings
+4. **Implement VHD Optimizations**: Create Windows-side configuration for better performance
+5. **Test and Validate**: Comprehensive testing of all optimizations before production use
+
+## Tool Capabilities Overview
+
+### WSL2 Development Suite
+- **Installation**: Automated setup of complete development environment
+- **Diagnostics**: System health checking and network analysis
+- **Performance**: Network speed testing and system monitoring
+- **Management**: Interactive utilities for ongoing maintenance
+
+### Networking Excellence
+- **DNS Analysis**: Professional-grade DNS troubleshooting tools
+- **Traffic Monitoring**: Real-time bandwidth and connection monitoring
+- **HTTP Testing**: Modern and traditional HTTP client tools
+- **Connectivity**: Comprehensive network utility toolkit
+
+### Container Integration
+- **Native Docker**: Seamless container development experience
+- **Resource Optimization**: Efficient memory and storage sharing
+- **Network Services**: Container networking and service discovery
+- **Development Workflow**: Unified container and development environment
 
 ## Notes
 
-- All changes should be tested in a backup environment first
-- VHD size reduction may require distro export/import
-- Drive mounting improvements will enhance Windows/WSL integration
-- Configuration changes require WSL restart to take effect
+- **Current Status**: Networking tools added, comprehensive documentation created, ready for installation
+- **Installation Required**: Run `wsl2-dev/install-dev-tools-wsl2.sh` to install new networking packages
+- **Testing Available**: Use `wsl2-dev/system-checkup.sh` and `speedtest2` for verification
+- **Future Optimizations**: VHD size and drive mounting improvements planned
+- **Backup Recommended**: Create WSL distro backup before major configuration changes
+- **Configuration Changes**: Require WSL restart to take effect

@@ -7,9 +7,15 @@ This directory contains essential tools and utilities for managing and optimizin
 | File | Description | Purpose |
 |------|-------------|---------|
 | [`install-dev-tools-wsl2.sh`](#install-dev-tools-wsl2sh) | Development environment setup script | Automated installation of development tools |
+| [`install-docker-engine.sh`](#install-docker-enginesh) | Docker Engine & utilities setup script | Install Docker and provide management utilities |
+| [`install-extra-tools.sh`](#install-extra-toolssh) | Extra tools installer | Install additional networking, monitoring, and utility tools |
+| [`install-nvidia-container.sh`](#install-nvidia-containersh) | NVIDIA GPU & container setup script | Install CUDA toolkit and NVIDIA Container Toolkit |
 | [`system-checkup.sh`](#system-checkupsh) | System diagnostic tool | Comprehensive health check and status reporting |
 | [`speedtest-wsl2.sh`](#speedtest-wsl2sh) | Network speed testing tool | Internet connection performance testing |
+| [`wsl2-docker-tweak.sh`](#wsl2-docker-tweaksh) | WSL2 auto-config optimizer | Automatically optimize .wslconfig for Docker workloads |
 | [`wsl-dev-utils.sh`](#wsl-dev-utilssh) | WSL2 utility functions | Interactive commands for WSL2 management |
+| [`Agent/`](#agent) | Agent installation and MCP setup | Scripts for installing opencode, mgrep, and configuring MCP servers |
+| [`install-agent.sh`](#install-agentsh) | Agent installer | Install opencode and mgrep agents via pnpm/bun |
 
 ## 🛠️ Tool Documentation
 
@@ -126,6 +132,94 @@ Download: 15.78 Mbit/s
 Upload: 7.08 Mbit/s
 ```
 
+### `install-docker-engine.sh`
+
+**Purpose**: Installs Docker Engine, NVIDIA Container Toolkit (if GPU detected), and provides utility functions for Docker management in WSL2.
+
+**Features**:
+- ✅ Docker Engine installation (CE, CLI, Compose, Buildx, Model plugin)
+- ✅ NVIDIA GPU support detection and toolkit setup
+- ✅ User group management for sudo-less Docker access
+- ✅ ctop and lazydocker installation for monitoring
+- ✅ Utility functions: docker-info, docker-prune, docker-shell, docker-ctop, docker-update
+
+**Installation**:
+```bash
+# Install Docker and tools
+sudo bash install-docker-engine.sh
+```
+
+**Utilities**:
+```bash
+# Load utilities (after install)
+source install-docker-engine.sh
+
+# Available commands
+docker-info      # Show Docker status summary
+docker-prune     # Aggressive cleanup of containers and images
+docker-shell <container>  # Exec into running container
+docker-ctop      # Launch ctop container monitor
+docker-update    # Update Docker packages
+```
+
+**What it installs**:
+- Docker Engine Community Edition
+- Docker Compose, Buildx, and Model plugins
+- NVIDIA Container Toolkit (if GPU present)
+- ctop and lazydocker for monitoring
+- Adds user to docker group
+
+### `install-extra-tools.sh`
+
+**Purpose**: Installs additional tools for WSL2, including networking, monitoring, and development extras.
+
+**Tools Installed**:
+- **dnsenum**: DNS enumeration tool for network analysis.
+- **lazyvim**: Neovim-based IDE with LazyVim configuration.
+- **lazydocker**: Terminal UI for Docker management.
+- **speedtest-cli**: Command-line internet speed testing (merged from speedtest-wsl2.sh).
+
+**Usage**:
+```bash
+# Install extra tools
+sudo bash install-extra-tools.sh
+```
+
+**Post-Installation**:
+- Restart shell or `source ~/.bashrc` for PATH updates.
+- Use tools: `dnsenum`, `nvim` (for lazyvim), `lazydocker`, `speedtest2`.
+
+### `wsl2-docker-tweak.sh`
+
+**Purpose**: Optimizes or resets WSL2 configuration (.wslconfig) for Docker workloads with menu-driven options.
+
+**Features**:
+- **Menu Options**:
+  - Optimize: Auto-detect RAM/CPU, set optimal limits (50% RAM, all cores)
+  - Default: Restore to default WSL2 settings (fallback)
+  - Enable Docker Experimental: Enable beta Docker features
+- Detects host specs and Docker info
+- Backs up existing .wslconfig to .wslconfig.backup
+- Prompts for WSL2 restart to apply changes
+
+**Requirements**:
+- WSL2 installed
+- Docker installed (optional, for better tuning)
+
+**Usage**:
+```bash
+# Run tweak tool with menu
+sudo bash wsl2-docker-tweak.sh
+```
+
+**Effects**:
+- **Optimize**: Improves Docker performance with custom RAM/CPU limits.
+- **Default**: Reverts to WSL2 defaults for stability.
+- **Experimental**: Enables beta Docker features (may be unstable).
+
+**Fallback**:
+- To revert: Copy .wslconfig.backup to .wslconfig, then `wsl --shutdown` and restart WSL2.
+
 ### `wsl-dev-utils.sh`
 
 **Purpose**: Interactive utility functions for WSL2 management and troubleshooting.
@@ -168,13 +262,42 @@ wsl-network-info
 wsl-dns-test google.com
 ```
 
+### `Agent/`
+
+**Purpose**: Scripts and configs for installing AI agents and setting up MCP servers for orchestration.
+
+**Contents**:
+- `install-agent.sh`: Installs opencode and mgrep, configures mgrep for opencode, and sets up MCP servers.
+- `sample-mcp-config.jsonc`: Sample config for MCP servers in opencode.
+
+**Features**:
+- ✅ Detects available package manager (pnpm > bun > npm)
+- ✅ Installs opencode and mgrep globally
+- ✅ Configures mgrep for opencode (login and install-opencode)
+- ✅ Sets up MCP servers in opencode config
+
+**Usage**:
+```bash
+cd Agent
+./install-agent.sh
+```
+
+**What it sets up**:
+- opencode: AI-assisted development agent
+- mgrep: Grep-based plugin/agent
+- MCP servers: Test, Context7, Grep by Vercel
+
 ## 🔄 Workflow Integration
 
 ### Typical Development Setup
 1. **Initial Setup**: Run `install-dev-tools-wsl2.sh` for complete environment setup
-2. **Health Check**: Use `system-checkup.sh` to verify installation
-3. **Network Testing**: Run `speedtest-wsl2.sh` to check connectivity
-4. **Ongoing Management**: Source `wsl-dev-utils.sh` for utility functions
+2. **Docker Setup**: Run `sudo bash install-docker-engine.sh` for Docker installation
+3. **WSL2 Optimization**: Run `sudo bash wsl2-docker-tweak.sh` to auto-configure RAM/CPU for Docker
+4. **NVIDIA GPU (Optional)**: If GPU present, run `sudo bash install-nvidia-container.sh` for CUDA/container support
+5. **Extra Tools**: Run `sudo bash install-extra-tools.sh` for additional tools
+6. **Health Check**: Use `system-checkup.sh` to verify installation
+7. **Network Testing**: Run `speedtest-wsl2.sh` to check connectivity
+8. **Ongoing Management**: Source `wsl-dev-utils.sh`, `install-docker-engine.sh`, and `install-extra-tools.sh` for utility functions
 
 ### Maintenance Routine
 ```bash
@@ -187,6 +310,15 @@ speedtest2 --simple
 # System cleanup
 source wsl-dev-utils.sh
 wsl-clean
+
+# Docker maintenance
+source install-docker-engine.sh
+docker-update  # Update Docker packages
+docker-prune   # Clean up containers/images
+
+# NVIDIA maintenance (if installed)
+sudo apt update && sudo apt install --only-upgrade nvidia-cuda-toolkit nvidia-container-toolkit
+# Test GPU: docker run --rm --gpus all nvidia/cuda:11.0-base nvidia-smi
 ```
 
 ## 📋 Prerequisites
@@ -222,6 +354,17 @@ sudo apt install -f  # Fix broken packages
 - Try `speedtest2 --list` to see available servers
 - Use `speedtest2 --server [server_id]` for specific server
 
+**NVIDIA GPU Issues**:
+- Ensure Windows NVIDIA drivers are installed (latest from NVIDIA site)
+- Run `nvidia-smi` manually to verify GPU access
+- If detection fails, check WSL2 integration: `wsl --update`
+- For container issues: `docker run --rm --gpus all nvidia/cuda:11.0-base nvidia-smi`
+
+**.wslconfig Issues**:
+- Use `wsl2-docker-tweak.sh` for automatic optimization
+- To revert: `cp /mnt/c/Users/$USER/.wslconfig.backup /mnt/c/Users/$USER/.wslconfig`
+- After changes: `wsl --shutdown` then restart WSL2
+
 ### Getting Help
 
 - Run `system-checkup.sh` for diagnostic information
@@ -231,8 +374,10 @@ sudo apt install -f  # Fix broken packages
 ## 📈 Performance Optimization
 
 - **VHD Size**: Keep under 256GB for better performance
-- **Memory**: Configure WSL2 memory limits in `.wslconfig`
+- **Memory**: Use `wsl2-docker-tweak.sh` to auto-configure RAM limits in `.wslconfig`
+- **CPU**: Auto-set processor limits for Docker parallelism
 - **Network**: Use `wsl-fix-network` for connectivity issues
+- **GPU**: For NVIDIA GPUs, use `install-nvidia-container.sh` for CUDA workloads
 - **Updates**: Regular `wsl-update` for security and performance
 
 ## 🤝 Contributing

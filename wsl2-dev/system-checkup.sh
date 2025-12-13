@@ -136,6 +136,7 @@ echo "DNS & Network Analysis:"
 check_package dnsutils "DNS utilities (dig, nslookup)"
 check_package traceroute "Traceroute"
 check_package whois "WHOIS lookup"
+check_installed dnsenum "DNS enumeration tool"
 
 echo ""
 echo "Network Monitoring:"
@@ -169,10 +170,13 @@ check_package lsb-release "LSB release info"
 check_package gnupg "GnuPG"
 check_package unzip "Unzip"
 check_package zip "Zip"
-check_package jq "JQ JSON processor"
+check_installed jq "JQ JSON processor"
 check_package tree "Tree directory viewer"
 check_package htop "Htop process viewer"
 check_package ncdu "NCdu disk usage"
+check_installed ctop "Ctop container monitor"
+check_installed lazydocker "Lazydocker"
+check_installed speedtest2 "Speedtest2"
 
 echo ""
 
@@ -198,6 +202,7 @@ echo ""
 echo "Editors & Terminals:"
 check_installed vim "Vim"
 check_installed nano "Nano"
+check_installed nvim "Neovim (LazyVim)"
 check_installed tmux "Tmux"
 check_installed zsh "Zsh"
 
@@ -205,6 +210,46 @@ echo ""
 echo "Documentation:"
 check_package man-db "Manual pages"
 check_installed tldr "TLDR pages"
+
+echo ""
+
+# --- STEP 3.5: AI Agents & Tools ---
+log_section "3.5. AI Agents & Tools"
+
+echo "OpenCode Agent:"
+check_installed opencode "OpenCode"
+
+echo ""
+echo "Semantic Search:"
+check_installed mgrep "mgrep"
+
+echo ""
+echo "MCP Servers:"
+if [ -f "$HOME/.config/opencode/config.jsonc" ]; then
+    echo -e "${C_GREEN}✓${C_NC} OpenCode config exists (~/.config/opencode/config.jsonc)"
+    if grep -q "mcp" "$HOME/.config/opencode/config.jsonc"; then
+        echo -e "${C_GREEN}✓${C_NC} MCP servers configured"
+    else
+        echo -e "${C_RED}✗${C_NC} MCP servers not configured"
+    fi
+else
+    echo -e "${C_RED}✗${C_NC} OpenCode config not found"
+fi
+
+echo ""
+echo "Package Managers:"
+check_installed pnpm "pnpm"
+check_installed bun "bun"
+check_installed yarn "Yarn"
+
+echo ""
+echo "Shell Enhancements:"
+check_installed oh-my-posh "oh-my-posh"
+if [ -d "$HOME/.oh-my-zsh" ]; then
+    echo -e "${C_GREEN}✓${C_NC} oh-my-zsh installed"
+else
+    echo -e "${C_RED}✗${C_NC} oh-my-zsh not installed"
+fi
 
 echo ""
 
@@ -317,11 +362,17 @@ echo ""
 log_section "7. Summary & Recommendations"
 
 echo "To install missing components, run:"
-echo "  ./install-dev-tools-wsl2.sh"
+echo "  ./wsl2-dev/install-dev-tools-wsl2.sh"
+echo "  ./wsl2-dev/Agent/install-agent.sh"
 echo ""
 
 echo "For WSL2 utilities, source:"
-echo "  source wsl-dev-utils.sh"
+echo "  source wsl2-dev/wsl2-dev-utils.sh"
+echo ""
+
+echo "For AI agents and MCP setup:"
+echo "  ./setup-aliases.sh"
+echo "  ./wsl2-dev/Agent/install-agent.sh"
 echo ""
 
 echo "Checkup completed on: $(date)"
